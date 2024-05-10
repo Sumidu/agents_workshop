@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate(".")
-#using CairoMakie
-using GLMakie
+using CairoMakie
+#using GLMakie
 using Agents
 
 # This is a model of agents that simulate a SIRS model
@@ -52,6 +52,7 @@ function initialize_model(agent_count = 1, infection_probability = 0.1, recovery
 
     case_zero = random_agent(model)
     case_zero.state = 1
+    case_zero.next_state = 1
     return model
 end
 
