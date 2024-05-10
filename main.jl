@@ -1,13 +1,14 @@
 using Pkg
 Pkg.activate(".")
-using CairoMakie
-
+#using CairoMakie
+using GLMakie
 using Agents
 
 # This is a model of agents that simulate a SIRS model
 
 @agent struct Person(GridAgent{2})
     state::Int  # 0 = S, 1 = I, 2 = R
+    next_state::Int
 end
 
 function sir_step!(agent, model)
@@ -15,9 +16,17 @@ function sir_step!(agent, model)
         # infect neighbors
         neighbors = nearby_agents(agent, model, 1)
         for neighbor in neighbors
-            neighbor.state = 1
+            neighbor.next_state = 1
         end
         # recover
+    end
+
+
+end
+
+function sir_update!(model)
+    for agent in allagents(model)
+        agent.state = agent.next_state
     end
 end
 
@@ -33,11 +42,11 @@ function initialize_model(agent_count = 1, infection_probability = 0.1, recovery
     )
 
     # generate a model
-    model = ABM(Person, space, properties=properties, agent_step! = sir_step!)
+    model = ABM(Person, space, properties=properties, agent_step! = sir_step!, model_step! = sir_update!)
 
     # add agents that are healthy
     for i in 1:agent_count
-        agent = Person(i, (0,0), 0)
+        agent = Person(i, (0,0), 0, 0)
         add_agent_single!(agent, model)
     end
 
