@@ -3,6 +3,7 @@ Pkg.activate(".")
 using CairoMakie
 #using GLMakie
 using Agents
+using Statistics: mean
 
 # This is a model of agents that simulate a SIRS model
 
@@ -16,7 +17,10 @@ function sir_step!(agent, model)
         # infect neighbors
         neighbors = nearby_agents(agent, model, 1)
         for neighbor in neighbors
-            neighbor.next_state = 1
+            # rand() is uniformly distributed between 0 and 1
+            if rand() < model.infection_probability
+                neighbor.next_state = 1
+            end
         end
         # recover
     end
@@ -31,14 +35,15 @@ function sir_update!(model)
 end
 
 
-function initialize_model(agent_count = 1, infection_probability = 0.1, recovery_probability = 0.1)
+function initialize_model(;agent_count = 1, infection_probability = 0.1, recovery_probability = 0.1, max_steps = 100)
 
     # generate a space
     space = GridSpaceSingle((10, 10), periodic=true)
     
     properties = Dict(
         :infection_probability => infection_probability,
-        :recovery_probability => recovery_probability
+        :recovery_probability => recovery_probability,
+        :max_steps => max_steps
     )
 
     # generate a model
@@ -59,23 +64,50 @@ end
 
 
 
-model = initialize_model(120, 0.4)
 
-model
-
-step!(model)
-
-
-for i in 1:100
-    println(model[i])
+function acolor(agent)
+    if agent.state == 1
+        return :red
+    end
+   
+    return :black
 end
 
 
-acolor(agent) = agent.state 
 
-scene = abmplot(model; agent_color = acolor)
-fig = scene[1]
-fig
 
-fig, _, _ = abmplot(model; agent_color = acolor)
-fig
+
+
+function isill(agent)
+    if (agent.state == 1)
+        return true
+    end
+    return false
+end
+
+isill(model[10])
+
+function ill90(model, time)
+    if time > model.max_steps
+        return true
+    end
+
+    illagents = count(isill, allagents(model))
+    return illagents/nagents(model) ≥ 0.9
+end
+
+ # ill90(model, time) = count(a -> a.state == 1, allagents(model))/nagents(model) ≥ 0.9
+
+
+
+ model = initialize_model(;agent_count = 120, recovery_probability = 0.1, infection_probability = 0.0)
+
+
+ fig, _, _ = abmplot(model; agent_color = acolor)
+ fig
+ 
+ adata = [(:state, mean), (:state, sum)]
+ 
+ 
+ adf, mdf = run!(model, ill90; adata)
+ 
